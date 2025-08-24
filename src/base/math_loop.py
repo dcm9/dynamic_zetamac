@@ -1,4 +1,8 @@
 import numpy as np
+import csv
+import os
+import time
+from datetime import datetime
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QApplication)
@@ -71,9 +75,53 @@ class MathLoopWindow(QMainWindow):
         self.total_questions = 0
         self.time_remaining = 120  # 120 seconds
         self.current_problem = ""
+        
+        # Statistics tracking variables
+        self.problem_start_time = None
+        self.attempts_for_current_problem = 0
+        self.session_start_time = datetime.now()
+        
+        # Initialize CSV file for statistics
+        self.setup_csv_logging()
+        
         self.setup_ui()
         self.setup_timer()
         self.new_problem()
+    
+    def setup_csv_logging(self):
+        """Initialize CSV file for logging statistics."""
+        # Create data directory if it doesn't exist
+        data_dir = "data"
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+        
+        # Create unique filename with timestamp
+        timestamp = self.session_start_time.strftime("%Y%m%d_%H%M%S")
+        self.csv_filename = os.path.join(data_dir, f"math_practice_{timestamp}.csv")
+        
+        # Create CSV file with headers
+        with open(self.csv_filename, 'w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                'session_timestamp',
+                'problem',
+                'duration_seconds',
+                'attempts',
+            ])
+    
+    def log_question_stats(self, problem, time_taken, attempts):
+        """Log statistics for a question to CSV."""
+        try:            
+            with open(self.csv_filename, 'a', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    self.session_start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    problem,
+                    round(time_taken, 3),
+                    attempts,
+                ])
+        except Exception as e:
+            print(f"Error logging to CSV: {e}")
     
     def setup_ui(self):
         """Set up the user interface."""
@@ -233,6 +281,10 @@ class MathLoopWindow(QMainWindow):
         self.answer_input.clear()
         self.answer_input.setFocus()
         self.feedback_label.clear()
+        
+        # Start timing for this problem
+        self.problem_start_time = time.time()
+        self.attempts_for_current_problem = 0
     
     def submit_answer(self):
         """Check the submitted answer and update score."""
@@ -241,14 +293,28 @@ class MathLoopWindow(QMainWindow):
             
         try:
             user_answer = int(self.answer_input.text())
-            self.total_questions += 1
+            self.attempts_for_current_problem += 1
             
-            if self.question_base.check_answer(self.current_problem, user_answer):
+            # Calculate time taken for this problem
+            time_taken = time.time() - self.problem_start_time if self.problem_start_time else 0
+            
+            is_correct = self.question_base.check_answer(self.current_problem, user_answer)
+            
+            if is_correct:
+                self.total_questions += 1
                 self.score += 1
-            
+                
+                # Log statistics to CSV
+                self.log_question_stats(
+                    self.current_problem,
+                    round(time_taken, 3),
+                    self.attempts_for_current_problem
+                )
+                
                 self.update_score_display()
+                
                 self.new_problem()
-            
+                
         except ValueError:
             self.feedback_label.setText("Please enter a valid number")
             self.feedback_label.setStyleSheet("color: #ff9800; padding: 10px;")
@@ -288,9 +354,15 @@ class MathLoopWindow(QMainWindow):
         self.total_questions = 0
         self.time_remaining = 120
         
+        # Reset statistics tracking for new session
+        self.session_start_time = datetime.now()
+        self.problem_start_time = None
+        self.attempts_for_current_problem = 0
+        self.setup_csv_logging()  # Create new CSV file for new session
+        
         # Show input elements
         self.answer_input.show()
-        self.submit_button.show()
+        # self.submit_button.show()
         self.feedback_label.show()
         self.problem_label.show()
         
@@ -301,7 +373,7 @@ class MathLoopWindow(QMainWindow):
         # Reset displays
         self.timer_label.setText(f"{self.time_remaining}")
         self.timer_label.setStyleSheet("color: #2196F3; padding: 10px;")
-        self.score_label.setText("0")
+        self.score_label.setText(f"{self.score}")
 
         # Start timer and new problem
         self.setup_timer()
