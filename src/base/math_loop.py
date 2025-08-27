@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QLineEdit, QPushButton, QApplication)
 from PySide6.QtGui import QFont
 
+from src.model.utils import sample_problems
+
 
 # {'operations': {'addition': True, 'subtraction': True, 'multiplication': True, 'division': True},
 #  'ranges': {'addition': {'operand1': (2, 100), 'operand2': (2, 100)},
@@ -17,8 +19,12 @@ class QuestionBase():
     def __init__(self, settings):
         self.operations = settings['operations']
         self.ranges = settings['ranges']
+        self.dynamic = settings.get('dynamic', False)
 
-    def get_problem(self):
+        if self.dynamic:
+            self.problem_pool = sample_problems("data", 240)
+
+    def get_random_problem(self):
         # Generate a math problem based on the selected operations and ranges
         operation = np.random.choice(list(key for key in self.operations.keys() if self.operations[key]))
 
@@ -57,6 +63,15 @@ class QuestionBase():
             problem = f"{divisor} / {dividend}"
 
         return problem
+    
+    def get_adaptive_problem(self):
+        return np.random.choice(self.problem_pool)
+    
+    def get_problem(self):
+        if self.dynamic:
+            return self.get_adaptive_problem()
+        else:
+            return self.get_random_problem()
 
     def get_answer(self, problem):
         return eval(problem)
@@ -338,10 +353,7 @@ class MathLoopWindow(QMainWindow):
         results_text = f"""
         🎉 Session Complete! 🎉
         
-        Final Score: {self.score} correct out of {self.total_questions} problems
-        Accuracy: {accuracy:.1f}%
-        
-        Problems per minute: {self.total_questions / 2:.1f}
+        Final Score: {self.score}
         """
         
         self.results_label.setText(results_text)

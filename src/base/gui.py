@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel
-from settings import MathSettingsWidget
-from math_loop import MathLoopWindow
+from src.base.settings import MathSettingsWidget
+from src.base.math_loop import MathLoopWindow
 
 class MathSettingsWindow(QMainWindow):
     """Main window for the math settings application."""
@@ -30,8 +30,8 @@ class MathSettingsWindow(QMainWindow):
             # This shouldn't happen due to button disabling, but just in case
             return
         
-        # Create and show the math loop window
-        self.math_window = MathLoopWindow(settings)
+        # Create and show the math loop window with parent reference
+        self.math_window = MathLoopWindow(settings, parent_window=self)
         self.math_window.show()
         
         # Hide the settings window

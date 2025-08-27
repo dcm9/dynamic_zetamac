@@ -26,7 +26,12 @@ class MathSettingsWidget(QWidget):
         operations_layout = self.create_ops_layout(operations_layout)
         
         main_layout.addWidget(operations_group)
-        
+
+        # Difficulty selection group
+        self.dynamic_checkbox = QCheckBox("Enable Dynamic Difficulty")
+        self.dynamic_checkbox.setChecked(True)
+        main_layout.addWidget(self.dynamic_checkbox)
+
         # Start button
         self.start_button = QPushButton("Start Practice")
         self.start_button.setStyleSheet("""
@@ -191,7 +196,12 @@ class MathSettingsWidget(QWidget):
                 'operand2': (int(self.multiplication_range_widget.min_edit2.text()) if self.multiplication_range_widget.min_edit2.text().isdigit() else 2, 
                            int(self.multiplication_range_widget.max_edit2.text()) if self.multiplication_range_widget.max_edit2.text().isdigit() else 100)
             }
-        
+
+        if self.dynamic_checkbox.isChecked():
+            settings['dynamic'] = True
+        else:
+            settings['dynamic'] = False
+
         return settings
 
 
